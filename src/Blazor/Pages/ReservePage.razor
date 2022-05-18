@@ -1,0 +1,133 @@
+@using ApplicationCore.Entities;
+@using ApplicationCore.Interfaces;
+
+@inject IShowService showService;
+@inject IReservationService reservationService;
+@inject NavigationManager navManager;
+
+
+@page "/reserve/{id:int}"
+
+<PageTitle>Reservera</PageTitle>
+
+@if (show == null)
+{
+    <p><em>Loading...</em></p>
+}
+@* else if (show.GetSeatsLeft > 0)
+    { *@
+<div class="container bg-secondary min-vh-100 rounded" style="padding-top: 50px;">
+    <div style=" display:flex">
+        <div style=" display:flex">
+            <div style="width:250px; padding-left: 10px">
+                <img src="@show.Movie?.PosterUrl" style="width: 100%" />
+            </div>
+            <div class="col-md-8" style="padding-left: 25px;">
+                <div style="font-weight: bold; font-size: 28px;">
+                    @show.Movie?.Title
+                </div>
+
+                <div style="font-size: 11px;">
+                    @show.Movie.Language.Substring(0,3) Tal, @show.Movie.Subtitles.Substring(0,3) Text,
+                    @show.Movie.Genre
+                    |
+                    @(string.Format("{0}{1}", (int)show.Movie.Duration/60 +
+                    " tim ",show.Movie.Duration%60 + " min")) | @show.Movie.GetAgeRating()
+                </div>
+                <div style="padding-top:5px; padding-bottom:5px; font-weight: bold; font-size: 12px;">
+                    @show.Theatre.TheatreName
+                </div>
+                <div style="font-weight: bold;">
+                    @show.ShowDate
+                </div>
+                <div style="font-size: 20px;">
+                    @show.ShowTime
+                </div>
+                <div style="font-size: 12px;">
+                    <div style=" margin-top: 25px;">@show.Movie.Plot</div>
+                    <div style="margin-top: 10px;">
+                        <div style="font-weight: bold;">Regi</div>
+                        <div>@show.Movie.Director</div>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <div style="font-weight: bold;">Skådespelare</div>
+                        <div>@show.Movie.Actors</div>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <div style="font-weight: bold;">Premiär</div>
+                        <div>@show.Movie.Year</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div style="padding-left: 25px ;">
+            <div style="margin-left: 60%; margin-bottom: 5px; font-size: 10px; font-weight: bold;">
+                @AvailableSeats(show.Id) kvar av @show.Theatre.AmountOfSeats</div>
+            <EditForm Model="@reservation" Type="Email" OnValidSubmit="@OnReserve">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <div style="margin-left: 60%;">
+                    Din e-post
+                </div>
+                <div>
+                    <InputText class="rounded" type="Email" id="name" placeholder="exempel@gmail.com"
+                        @bind-Value="reservation.Email" required="true" />
+                </div>
+                <div class="col-6">
+                    <div style="display: flex; margin-top: 10px;">
+                        <div style="margin-right: 25px;">Antal</div>
+                        <div style="margin-right: 5px;">
+                            <InputNumber class="rounded text-center" style="width: 45px;" id="Seat" required="true"
+                                @bind-Value="reservation.BookedSeats" min=1 max="@AvailableSeats(show.Id)"
+                                @onclick="UpdateTotal" @onfocusout="UpdateTotal" />
+                        </div>
+
+                        <button class="rounded" type="submit">Reservera</button>
+                    </div>
+                </div>
+                <div style="display: flex; margin-top: 10px;">
+                    <div style="margin-right: 20%;">@reservation.BookedSeats x @show.Price:-</div>
+                    <div style="font-weight: bold;">Total:</div>
+                    <div style="padding-left: 5px;">@Total:-</div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+@* } *@
+@* else
+    {
+    <p><em>Bokningen är fullbokad</em></p>
+    } *@
+
+@code
+{
+    [Parameter]
+    public int Id { get; set; }
+    Show show;
+    private ReservationRequest reservation = new();
+    private int Total { get; set; } = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        show = await showService.GetShowAsync(Id);
+    }
+
+    public async Task OnReserve()
+    {
+        reservation.ShowId = show.Id;
+        var result = await reservationService.CreateReservationAsync(reservation);
+        navManager.NavigateTo("/reserve/confirm/" + result.ReservNr);
+    }
+    private int AvailableSeats(int id)
+    {
+        return showService.GetAvailableSeats(id).Result;
+    }
+
+    public void UpdateTotal()
+    {
+        Total = reservation.BookedSeats * show.Price;
+    }
+}

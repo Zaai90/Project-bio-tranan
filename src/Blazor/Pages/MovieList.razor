@@ -1,0 +1,48 @@
+@using ApplicationCore.Entities;
+@using ApplicationCore.Interfaces;
+
+@inject IMovieService movieService;
+
+@page "/movielist/"
+
+@{
+    <PageTitle>Movies</PageTitle>
+    if (movies == null)
+    {
+        <p>Loading...</p>
+
+    }
+    else
+    {
+        <div class="container bg-secondary min-vh-100 rounded" style="padding-top: 50px;">
+            <div class=" row row-cols-2 row-cols-md-4">
+                @foreach (var item in movies)
+                {
+                    <div class="col mb-3">
+                        <div class="bg-dark text-white card h-100" style="width: 20rem;">
+                            <img class="card-img-top" src="@item.PosterUrl" alt="Card image cap">
+                            <div class="card-body">
+                                <h5 class="card-title">@item.Title</h5>
+                                <p class="card-text" style="min-height: 100px;"> @item.Actors</p>
+                                <a href="/movie/@item.Id" class="btn btn-primary">Visa fullständig info</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+
+@code
+{
+    List<Movie> movies;
+
+    protected override async Task OnInitializedAsync()
+    {
+        movies = await movieService.GetAllMoviesAsync();
+        movies.OrderBy(m => m.Title);
+
+    }
+}

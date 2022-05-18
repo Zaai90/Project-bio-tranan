@@ -1,0 +1,59 @@
+@using ApplicationCore.Entities;
+@using ApplicationCore.Interfaces;
+
+@inject IMovieService movieService;
+@inject IShowService showService;
+@inject IReviewService reviewService;
+
+<div style=" display:flex">
+    <div style=" display:flex">
+        <div style="width:250px;">
+            <img src="@movie?.PosterUrl" style="width: 100%" />
+        </div>
+        <div class="col-md-8" style="padding-left: 25px;">
+            <div style="font-weight: bold; font-size: 28px;">
+                @movie?.Title
+            </div>
+
+            <div style="font-size: 11px;">
+                @movie.Language.Substring(0,3) Tal, @movie.Subtitles.Substring(0,3) Text,
+                @movie.Genre
+                |
+                @(string.Format("{0}{1}", (int)movie.Duration/60 +
+                " tim ",movie.Duration%60 + " min")) | @movie.GetAgeRating()
+            </div>
+
+            <div style="font-size: 12px;">
+                <div style=" margin-top: 25px;">@movie.Plot</div>
+                <div style="margin-top: 10px;">
+                    <div style="font-weight: bold;">Regi</div>
+                    <div>@movie.Director</div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div style="font-weight: bold;">Skådespelare</div>
+                    <div>@movie.Actors</div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div style="font-weight: bold;">Premiär</div>
+                    <div>@movie.Year</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public int Id { get; set; }
+    public string Title { get; set; }
+    Movie movie;
+    List<Show> shows;
+
+    protected override async Task OnInitializedAsync()
+    {
+        movie = await movieService.GetMovieByIdAsync(Id);
+        Title = movie == null ? "Movie not Found" : movie.Title;
+        shows = await showService.GetShowsByMovieIdAsync(Id);
+    }
+}

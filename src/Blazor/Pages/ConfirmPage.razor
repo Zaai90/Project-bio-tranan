@@ -1,0 +1,46 @@
+@using ApplicationCore.Entities
+@using ApplicationCore.Interfaces;
+
+@inject IReservationService reservationService;
+@inject NavigationManager navigationManager;
+
+@page "/reserve/confirm/{id:guid}"
+
+@if (Reservation != null)
+{
+    <PageTitle>Tack för din reservation</PageTitle>
+
+    <div class="container">
+        <h3>Tack för din reservation!</h3>
+        <p>Din reservationskod är:</p>
+        <img class="col-md-2" style="padding-bottom: 10px;"
+        src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=@Id">
+        <div class="col-md-2" style="background: black">
+            <p class="text-center" style="color: white">@Id.ToString().ToUpper().Substring(0,6)</p>
+        </div>
+        <div class="row">
+            <div class="col-md-1"><button class="btn btn-primary" href="/">Tillbaka</button> </div>
+            <div class="col-md-1"><button class="btn btn-primary" onclick="window.print()">Skriv
+                    ut</button></div>
+        </div>
+
+    </div>
+}
+else
+{
+    navigationManager.NavigateTo("/");
+    <p>Loading...</p>
+}
+
+@code
+{
+    [Parameter]
+    public Guid Id { get; set; }
+    private Reservation Reservation { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Reservation = await reservationService.GetReservationByGuidAsync(Id);
+
+    }
+}

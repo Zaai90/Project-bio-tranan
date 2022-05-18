@@ -1,0 +1,158 @@
+@using ApplicationCore.Entities;
+@using ApplicationCore.Interfaces;
+
+@inject IMovieService movieService;
+@inject IShowService showService;
+@inject IReviewService reviewService;
+
+@page "/movie/{id:int}"
+
+@{
+    <PageTitle>@Title</PageTitle>
+    if (movie == null)
+    {
+        <p>Loading...</p>
+
+    }
+    else
+    {
+        <div class="container bg-secondary min-vh-100 rounded" style="padding-top: 50px;">
+
+            <MovieComponent Id=Id />
+            @for (int i = 0; i < totalRating; i++)
+            {
+                <i style="color: #ffd600;" class="bi bi-star-fill"></i>
+            }
+            @if (totalRating < 5d)
+            {
+                if (totalRating > 5d)
+                {
+                    <i style="color: #ffd600;" class="bi bi-star-half"></i>
+                }
+
+                for (double i = totalRating; i < 5; i++)
+                {
+                    <i style="color: #ffd600;" class="bi bi-star"></i>
+                }
+            }
+
+            <div style="padding-top: 15px;">
+                <button class="btn btn-primary" @onclick="ToggleToReviews"> Reviews</button>
+                <button class="btn btn-primary" @onclick="ToggleToShows"> Se kommande visningar</button>
+                @if (isReviewsToggled)
+                {
+                    <div class="reviewListContainer">
+                        @foreach (var item in reviews)
+                        {
+                            if (!string.IsNullOrEmpty(item.ReviewText))
+                            {
+                                <div class="reviewContainer" style="padding:15px; background:gray; margin: 10px; border-radius: 5px;">
+                                    <div class="d-flex align-items-center">
+                                        <div style="display: flex;">@for (int i = 0; i < item.Rating; i++)
+                                            {
+                                                <i style="color: #ffd600;" class="bi bi-star-fill"></i>
+                                            }
+                                            @if (item.Rating < 5)
+                                            {
+                                                for (int i = item.Rating; i < 5; i++)
+                                                {
+                                                    <i style="color: #ffd600;" class="bi bi-star"></i>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                    <div><span>@item.ReviewText</span></div>
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+
+                @if (isShowToggled)
+                {
+                    <div class="showContainer">
+                        @foreach (var item in shows)
+                        {
+                            <div class="movieContainer" style="padding:15px; background:gray; margin: 10px; border-radius: 5px;">
+                                <div class="d-flex align-items-center">
+                                    <img class style="width:75px; display:inline-block;" src="@item.Movie.PosterUrl">
+
+                                    <div class="p-2">
+                                        <div><span>@item.ShowDate</span></div>
+                                        <div><span>@item.ShowTime</span></div>
+                                    </div>
+                                    <div class="p-2" style="min-width:600px">
+                                        <h2>@item.Movie.Title</h2>
+                                        <div class="col-sm-12">@item.Movie.Language.Substring(0,3) Tal,
+                                            @item.Movie.Subtitles.Substring(0,3)
+                                            Text, @item.Movie.Genre | @(string.Format("{0}{1}", (int)item.Movie.Duration/60 +
+                            " tim ",item.Movie.Duration%60 + " min")) | @item.Movie.GetAgeRating()
+                                        </div>
+
+                                    </div>
+
+                                    <div class="p-5"> @AvailableSeats(item.Id) av @GetTotalSeats(item.Id) kvar</div>
+                                    @if (AvailableSeats(item.Id) > 0)
+                                    {
+                                        <div class="p-5"><a href="/reserve/@item.Id" class="btn btn-secondary btn-lg active" role="button"
+                                style="" aria-pressed="true">Reservera</a></div>
+                                    }
+
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code
+{
+    [Parameter]
+    public int Id { get; set; }
+    public string Title { get; set; }
+    private Movie movie;
+    private List<Show> shows;
+
+    private double totalRating = 0d;
+    private List<Review> reviews;
+
+    bool isReviewsToggled = false;
+    bool isShowToggled = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        movie = await movieService.GetMovieByIdAsync(Id);
+        Title = movie == null ? "Movie not Found" : movie.Title;
+        shows = await showService.GetShowsByMovieIdAsync(Id);
+        reviews = await reviewService.GetReviewsByMovieIdAsync(Id);
+        if (reviews != null)
+        {
+            totalRating = reviews.Sum(x => x.Rating) == 0 ? 0 : (double)(reviews.Sum(x => x.Rating) / reviews.Count);
+        }
+    }
+
+    private void ToggleToReviews()
+    {
+        isShowToggled = false;
+        isReviewsToggled = !isReviewsToggled;
+    }
+
+    private int AvailableSeats(int id)
+    {
+        return showService.GetAvailableSeats(id).Result;
+    }
+
+    private int GetTotalSeats(int id)
+    {
+        return shows.FirstOrDefault(x=>x.Id == id).Theatre.AmountOfSeats;
+    }
+    private void ToggleToShows()
+    {
+        isReviewsToggled = false;
+        isShowToggled = !isShowToggled;
+    }
+
+}

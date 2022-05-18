@@ -1,0 +1,61 @@
+@using ApplicationCore.Entities;
+@using ApplicationCore.Interfaces;
+
+
+@inject IShowService showService;
+
+@if (Shows == null)
+{
+    <p>Laddar...</p>
+}
+else
+{
+    <div class="mainContainer">
+        @foreach (var item in Shows)
+        {
+            <div class="movieContainer" style="padding:15px; background:dimgray; margin: 10px; border-radius: 5px;">
+                <div class="d-flex align-items-center">
+                    <img class style="width:75px; display:inline-block;" src="@item.Movie.PosterUrl">
+
+                    <div class="p-2">
+                        <div><span>@item.ShowDate</span></div>
+                        <div><span>@item.ShowTime</span></div>
+                    </div>
+                    <div class="p-2" style="min-width:600px">
+                        <h2>@item.Movie.Title</h2>
+                        <div class="col-sm-12">@item.Movie.Language.Substring(0,3) Tal, @item.Movie.Subtitles.Substring(0,3)
+                            Text, @item.Movie.Genre | @(string.Format("{0}{1}", (int)item.Movie.Duration/60 +
+                    " tim ",item.Movie.Duration%60 + " min")) | @item.Movie.GetAgeRating()
+                        </div>
+
+                    </div>
+
+                    <div class="p-5"> @AvailableSeats(item.Id) av @GetTotalSeats(item.TheatreId) kvar</div>
+                    @if (AvailableSeats(item.Id) > 0)
+                    {
+                        <div class="p-5"><a href="/reserve/@item.Id" class="btn btn-secondary btn-lg active" role="button" style=""
+                    aria-pressed="true">Reservera</a></div>
+                    }
+
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Show> Shows { get; set; } = new List<Show>();
+    protected override async Task OnInitializedAsync()
+    {
+        Shows = await showService.GetAllShowsAsync();
+    }
+    private int AvailableSeats(int id)
+    {
+        return showService.GetAvailableSeats(id).Result;
+    }
+
+    private int GetTotalSeats(int id)
+    {
+        return 45;
+    }
+}

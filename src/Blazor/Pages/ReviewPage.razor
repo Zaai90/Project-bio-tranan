@@ -1,0 +1,139 @@
+@using ApplicationCore.Entities;
+@using ApplicationCore.Interfaces;
+
+
+@inject IMovieService movieService;
+@inject IShowService showService;
+@inject IReservationService reservationService;
+@inject IReviewService reviewService;
+
+@page "/Review/"
+
+<PageTitle>Review Movie</PageTitle>
+
+@if (!isPostReviewPageToggled)
+{
+    <div class="FormContainer" style="justify-content: center;display: grid;padding-top: 25px;">
+
+        <div>
+            <input class="rounded" type="Email" id="name" placeholder="exempel@gmail.com" @bind="email" required="true" />
+        </div>
+        <div>
+            <input type="Text" class="rounded" placeholder="77970A" @bind="reservationCode" minlength="6" maxlength="6"
+            required="true" />
+        </div>
+        <button class="btn btn-primary" @onclick="ReciveForm">Hämta formulär</button>
+
+        <div>
+        </div>
+    </div>
+}
+else if (isPostReviewPageToggled)
+{
+
+    <div class="MovieInfoContainer" style="padding-top:20px;">
+        <div style="width:250px">
+            <img style="width:100%" src="@PosterUrl">
+        </div>
+    </div>
+    <div class="FormContainer" style="padding-top: 20px;">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Lämna recension</h3>
+                    </div>
+                    <div class="card-body">
+
+                        <div class="form-group">
+                            <label for="text">Recension</label>
+                            <textarea class="form-control" id="Recention" rows="3" @bind="recention"></textarea>
+                            <div style="display: flex;">
+                                <div class="col-2" style="margin-top: 10px ;">
+                                    <label for="text">Betyg</label>
+                                </div>
+                                <div class="rating col-2">
+                                    <input @onchange="(()=>ChangeRating(5))" type="radio" name="rating" value="5"
+                                    id="5"><label for="5">☆</label>
+                                    <input @onchange="(()=>ChangeRating(4))" type="radio" name="rating" value="4"
+                                    id="4"><label for="4">☆</label>
+                                    <input @onchange="(()=>ChangeRating(3))" type="radio" name="rating" value="3"
+                                    id="3"><label for="3">☆</label>
+                                    <input @onchange="(()=>ChangeRating(2))" type="radio" name="rating" value="2"
+                                    id="2"><label for="2">☆</label>
+                                    <input @onchange="(()=>ChangeRating(1))" type="radio" name="rating" value="1"
+                                    id="1"><label for="1">☆</label>
+                                </div>
+                            </div>
+                            <button type="Submit" class="btn btn-primary" @onclick="SendReview">Skicka</button>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+@code {
+
+    private string email = "";
+    private string reservationCode = "";
+
+
+    private string PosterUrl = "";
+
+    private Movie Movie;
+    private Show Show;
+    private bool isPostReviewPageToggled = false;
+    private Reservation reservation;
+    private int ratingChoosen = 0;
+    private string recention = "";
+
+    private void ShowPostReviewPage()
+    {
+        isPostReviewPageToggled = true;
+    }
+
+    private void ChangeRating(int rating)
+    {
+        ratingChoosen = rating;
+    }
+
+    private async void ReciveForm()
+    {
+        if (email != "" && reservationCode != "")
+        {
+
+            reservation = await reservationService.GetReservationByEmailAndReservNrAsync(email, reservationCode);
+            if (reservation != null)
+            {
+                Show = await showService.GetShowAsync(reservation.ShowId);
+                Movie = await movieService.GetMovieByIdAsync(Show.MovieId);
+                PosterUrl = Movie.PosterUrl;
+                ShowPostReviewPage();
+            }
+        }
+    }
+
+    private async void SendReview()
+    {
+        var review = new Review()
+        {
+            ReviewDate = DateTime.Now,
+            MovieId = Movie.Id,
+            Rating = ratingChoosen,
+            ReviewText = recention,
+            Email = reservation.Email
+        };
+        var result = await reviewService.CreateReviewAsync(review);
+        if (result != null)
+        {
+            await reservationService.RemoveReservationAsync(reservation);
+            isPostReviewPageToggled = false;
+        }
+    }
+
+}

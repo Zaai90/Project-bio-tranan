@@ -1,0 +1,52 @@
+@using ApplicationCore.Entities
+@using ApplicationCore.Interfaces;
+
+@inject IReservationService reservationService;
+@inject IShowService showService;
+
+@page "/cancelReservation"
+
+@if (Reservation == null)
+{
+    <div>
+        <input type="text" placeholder="Reservationskod" @bind-value="reservationcode" />
+        <input type="email" placeholder="Email" @bind-value="email" />
+        <button @onclick="GetReservation">Hämta</button>
+    </div>
+}
+else
+{
+    <div style="margin-top: 20px;">
+        <MovieComponent Id="@MovieId" />
+        <p>@Reservation.ReservNr.ToString().ToUpper()</p>
+        <p>@Reservation.Email</p>
+        <button class="btn btn-danger" @onclick="UnBookReservation">Avboka</button>
+        <button class="btn btn-primary" @onclick="(()=>Reservation=null)">Avbryt</button>
+    </div>
+}
+
+@code
+{
+    private string reservationcode;
+    private string email;
+    private int MovieId;
+    private Reservation Reservation { get; set; }
+
+    private async void GetReservation()
+    {
+        var reservations = await reservationService.GetAllReservationsAsync();
+        Reservation = reservations.FirstOrDefault(r => (r.ReservNr.ToString().ToUpper().Substring(0, 6) ==
+        reservationcode.ToUpper()) &&
+        r.Email.ToLower() ==
+        email.ToLower());
+
+        var show = await showService.GetShowAsync(Reservation.ShowId);
+        MovieId = show.MovieId;
+
+    }
+    private async void UnBookReservation()
+    {
+        await reservationService.RemoveReservationAsync(Reservation);
+        Reservation = null;
+    }
+}
